@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Restaurant POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+        <div class="logo">🍽 POS</div>
+
+        <nav class="nav">
+            <button class="nav-btn active">POS | المبيعات</button>
+            <button class="nav-btn">Tables | الطاولات</button>
+            <button class="nav-btn">Orders | الطلبات</button>
+            <button class="nav-btn">Reports | التقارير</button>
+        </nav>
+
+        <div class="user">
+            Admin | خروج
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="container">
+
+        <!-- CATEGORIES -->
+        <aside class="categories">
+            <button class="category active">🥤 Drinks | مشروبات</button>
+            <button class="category">🍔 Meals | وجبات</button>
+            <button class="category">🍰 Desserts | حلويات</button>
+            <button class="category">🚚 Delivery | توصيل</button>
+        </aside>
+
+        <!-- PRODUCTS -->
+        <section class="products">
+            <div class="product">
+                <img src="https://via.placeholder.com/120" />
+                <h4>Cola</h4>
+                <p>10.00</p>
+            </div>
+
+            <div class="product">
+                <img src="https://via.placeholder.com/120" />
+                <h4>Orange Juice</h4>
+                <p>12.00</p>
+            </div>
+
+            <div class="product">
+                <img src="https://via.placeholder.com/120" />
+                <h4>Burger</h4>
+                <p>25.00</p>
+            </div>
+
+            <div class="product">
+                <img src="https://via.placeholder.com/120" />
+                <h4>Pizza</h4>
+                <p>30.00</p>
+            </div>
+        </section>
+
+        <!-- ORDER -->
+        <aside class="order">
+            <h3>Current Order | الحالي</h3>
+
+            <ul class="order-items">
+                <li>Burger × 2 <span>50.00</span></li>
+                <li>Cola × 1 <span>10.00</span></li>
+            </ul>
+
+            <div class="total">
+                Total: <span>60.00</span>
+            </div>
+
+            <button class="btn pay">Pay | دفع</button>
+            <button class="btn hold">Hold | تعليق</button>
+            <button class="btn cancel">Cancel | إلغاء</button>
+        </aside>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
