@@ -79,9 +79,6 @@ body {
 /* PRODUCTS */
 .products {
     padding: 15px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
     overflow-y: auto;
 }
 
@@ -92,11 +89,25 @@ body {
     text-align: center;
     cursor: pointer;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    height: 160px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
 }
+
+.product {
+    min-width: 120px;
+    /* ⭐ important for horizontal row */
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: 0.2s;
+}
+
+.product:hover {
+    transform: scale(1.05);
+}
+
 
 .product img {
     width: 100%;
@@ -109,6 +120,22 @@ body {
 
 .product p {
     font-weight: bold;
+}
+
+.category-section {
+    margin-bottom: 30px;
+}
+
+.category-section h3 {
+    margin-bottom: 10px;
+    border-bottom: 2px dashed #ccc;
+    padding-bottom: 5px;
+}
+
+.products .product-grid {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 /* ORDER */
@@ -177,6 +204,19 @@ body {
     cursor: pointer;
 }
 
+.orderAction {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.orderAction button {
+    width: 30%;
+    height: 75px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
 .order-items li {
     display: flex;
     justify-content: space-between;
@@ -218,6 +258,22 @@ body {
     transition: all 0.15s ease;
 }
 
+.cat-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: #eee;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.cat-btn.active {
+    background: #2979ff;
+    color: white;
+    font-weight: bold;
+}
+
 /* PRESS EFFECT */
 .qty-controls button:active {
     box-shadow:
@@ -240,4 +296,17 @@ body {
     flex: 1;
     /* takes remaining space */
     font-weight: 500;
+}
+
+/* ⭐ RECENTS ROW */
+.recents-row {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+/* Hide ugly scrollbar (optional) */
+.recents-row::-webkit-scrollbar {
+    display: none;
 }
