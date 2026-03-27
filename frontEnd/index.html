@@ -17,9 +17,9 @@
 
         <nav class="nav">
             <button class="nav-btn active">POS | المبيعات</button>
-            <button class="nav-btn">Tables | الطاولات</button>
+            <button class="nav-btn" onclick="openDashboard()">📊 | Dashboard</button>
             <button class="nav-btn">Orders | الطلبات</button>
-            <button class="nav-btn">Reports | التقارير</button>
+            <button id="HisBtn" class="nav-btn" onclick="toggleHistory()">History | السجل</button>
         </nav>
 
         <div class="user">
@@ -46,23 +46,142 @@
             <h3>Current Order | الحالي</h3>
 
             <ul class="order-items">
-                <li>Burger × 2 <span>50.00</span></li>
-                <li>Cola × 1 <span>10.00</span></li>
+
             </ul>
 
             <div class="total">
-                Total: <span>60.00</span>
+                Total: <span>00.00</span>
             </div>
 
             <div class="orderAction">
-                <button class="btn pay">دفع</button>
-                <button class="btn hold">تعليق</button>
-                <button class="btn cancel">إلغاء</button>
+                <button class="btn pay" id="pay" disabled>دفع</button>
+                <button class="btn hold" id="hold">تعليق</button>
+                <button class="btn cancel" id="cancel">إلغاء</button>
             </div>
         </aside>
 
     </main>
 
+    <!-- dashboard -->
+    <div id="dashboardPanel" class="side-panel">
+
+        <div class="panel-header">
+            <h2>Dashboard</h2>
+            <button class="clXBtn" onclick="closeDashboard()">✖</button>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="dashboard-cards">
+                <div class="card">
+                    <h3>Total Revenue</h3>
+                    <p id="totalRevenue">0 SDG</p>
+                </div>
+
+                <div class="card">
+                    <h3>Total Orders</h3>
+                    <p id="totalOrders">0</p>
+                </div>
+
+                <div class="card">
+                    <h3>Today Sales</h3>
+                    <p id="todaySales">0 SDG</p>
+                </div>
+
+                <div class="card">
+                    <h3>Best Seller</h3>
+                    <p id="bestSeller">-</p>
+                </div>
+
+            </div>
+
+            <div class="charts">
+
+                <div class="chart-box">
+                    <h3>Revenue Overview</h3>
+                    <canvas id="revenueChart"></canvas>
+                </div>
+
+                <div class="chart-box">
+                    <h3>Top Selling Items</h3>
+                    <canvas id="itemsChart"></canvas>
+                </div>
+
+                <div class="chart-box">
+                    <h3>Payment Methods</h3>
+                    <canvas id="paymentChart"></canvas>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- paymentModal -->
+    <div id="paymentModal" class="modal hidden">
+        <span class="modal-overlay"></span>
+        <div class="modal-content modern">
+            <button class="close-btn" id="closeModalX">&times;</button>
+
+            <h3>Payment | الدفع</h3>
+
+            <!-- TABS -->
+            <div class="tabs">
+                <button class="tab active" data-tab="cash">Cash</button>
+                <button class="tab" data-tab="digital">Digital</button>
+            </div>
+
+            <!-- CASH VIEW -->
+            <div class="tab-content active" id="cashTab">
+                <p>Total: <span id="payTotal">0</span> SDG</p>
+
+                <input type="number" id="cashInput" placeholder="Enter cash..." />
+
+                <p class="change-text">
+                    Change: <span id="change">0</span> SDG
+                </p>
+            </div>
+
+            <!-- DIGITAL VIEW -->
+            <div class="tab-content" id="digitalTab">
+                <p>Total: <span id="payTotal2">0</span> SDG</p>
+
+                <input type="text" id="digitalRef" placeholder="Transaction ID / Phone" />
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="modal-buttons">
+                <button id="confirmPay" class="confirm">Confirm</button>
+                <button id="closePay" class="cancel">Cancel</button>
+            </div>
+
+        </div>
+
+
+    </div>
+    <!-- custom alert prompt -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- history -->
+    <div id="historyPanel" class="history hidden">
+        <div class="history-top">
+            <h3>History</h3>
+            <button class="clXBtn" onclick="closeHistory()">✖</button>
+        </div>
+
+        <div id="historyContent"></div>
+    </div>
+
+    <!-- history delete alert -->
+    <div id="confirmToast" class="confirm-toast hidden">
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="confirm-actions">
+            <button id="confirmYes">Yes</button>
+            <button id="confirmNo">Cancel</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.js"></script>
     <script src="js/data.js"></script>
     <script src="js/app.js"></script>
 </body>
