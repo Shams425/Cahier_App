@@ -723,6 +723,7 @@ button.unRotate {
     transition: transform 0.3s;
 }
 
+
 /* dashboard */
 .dashboard {
     display: grid;
@@ -830,7 +831,7 @@ body.dashboard-open::before {
     background: rgba(0, 0, 0, 0.1);
 }
 
-.charts {
+.chartsCanv {
     margin-top: 20px;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -864,4 +865,44 @@ body.dashboard-open::before {
         transform: translateX(0);
         opacity: 1;
     }
+}
+
+.filters {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 999px;
+    /* 🔥 pill style */
+    background: #f1f1f1;
+    color: #555;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+/* ✨ hover */
+.filter-btn:hover {
+    background: #e0e0e0;
+    transform: translateY(-1px);
+}
+
+/* 🔥 active state */
+.filter-btn.active {
+    background: linear-gradient(135deg, #00c8ff, #007aff);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+/* ✨ click effect */
+.filter-btn:active {
+    transform: scale(0.95);
 }

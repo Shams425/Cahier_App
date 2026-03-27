@@ -1,9 +1,11 @@
 // ===== global =====
 let order = [];
-let history = [];
+let history = JSON.parse(localStorage.getItem("history")) || [];
+let currentFilter = "all"
 let revenueChart = null;
 let itemsChart = null;
 let paymentChart = null;
+let transactionCounter = 1;
 
 
 // Select elements
@@ -192,7 +194,7 @@ function attachProductEvents() {
 }
 
 
-// ===== filter logic ======
+// ===== filter product logic ======
 const catButtons = document.querySelectorAll(".cat-btn");
 const sections = document.querySelectorAll(".category-section");
 const products = document.getElementById("products");
@@ -315,6 +317,50 @@ tabs.forEach(tab => {
     });
 });
 
+const transID = document.getElementById("transactionInput");
+
+transID.addEventListener("input", () => {
+
+    // remove non-digits
+    transID.value = transID.value.replace(/\D/g, "");
+
+    // limit to 4 digits
+    if (transID.value.length > 4) {
+        transID.value = transID.value.slice(0, 4);
+    }
+});
+
+function confirmOrder() {
+    const transactionInput = document.getElementById("transactionInput");
+
+    const newOrder = {
+        id: history.length + 1, // 🔥 always new
+        items: order,
+        total: currentTotal,
+        time: new Date(),
+        payment: paymentMethod,
+        transactionId: paymentMethod === "digital"
+            ? String(transactionInput.value).padStart(4, "0") // ensures 4 digits
+            : null
+
+    };
+
+    saveToHistory(newOrder);
+
+    lastTransactionId = newOrder.transactionId || newOrder.id;
+
+    updateDashboard(); // refresh cards
+
+    // reset
+    order = [];
+    currentTotal = 0;
+    clearOrder()
+    document.getElementById("transactionInput").value = ""
+
+    document.getElementById("paymentModal").classList.add("hidden");
+    document.querySelector(".modal-overlay").classList.remove("active");
+}
+
 document.getElementById("confirmPay").addEventListener("click", () => {
 
     if (paymentMethod === "cash") {
@@ -327,7 +373,7 @@ document.getElementById("confirmPay").addEventListener("click", () => {
     }
 
     if (paymentMethod === "digital") {
-        const ref = document.getElementById("digitalRef").value.trim();
+        const ref = document.getElementById("transactionInput").value.trim();
 
         if (!ref) {
             showToast("Enter transaction ID ❌");
@@ -341,11 +387,7 @@ document.getElementById("confirmPay").addEventListener("click", () => {
 
     // wait before closing
     setTimeout(() => {
-        saveToHistory();
-        updateDashboard();
-        clearOrder();
-        document.getElementById("paymentModal").classList.add("hidden");
-        document.querySelector(".modal-overlay").classList.remove("active");
+        confirmOrder()
     }, 2000);
 });
 
@@ -433,7 +475,7 @@ function saveToHistory() {
     const itemsArray = Object.keys(order).map(name => ({
         title: name,
         count: order[name].qty,
-        price: order[name].price // 👈 you must have this or map it
+        price: order[name].price, // 👈 you must have this or map it
     }));
 
     const newOrder = {
@@ -441,7 +483,9 @@ function saveToHistory() {
         total: currentTotal,
         payment: paymentMethod,
         time: new Date().toLocaleString(),
-        paymentMethod: selectedPaymentMethod
+        transactionId: paymentMethod === "digital"
+            ? String(transactionInput.value).padStart(4, "*")
+            : null
     };
 
     history.push(newOrder);
@@ -485,13 +529,25 @@ function renderHistory() {
       </div>
 
       <div class="history-meta" style="margin-top:10px">
-        <div>${order.payment}</div>
+        ${order.payment === "digital" ?
+                `<div class="transaction-id">
+            Txn: **********${order.transactionId}
+        </div>` : `
+        <div class="cash">${order.payment}</div>
+        `
+            }  
         <div>${order.time}</div>
       </div>
     `;
 
         historyContainer.appendChild(historyItem);
     });
+}
+
+//add (*) with every digital payment items
+function maskTransactionId(id) {
+    if (!id) return "";
+    return "**********" + String(id);
 }
 
 function deleteHistory(index) {
@@ -575,10 +631,18 @@ function closeConfirm() {
 
 // DASHBOARD
 function updateDashboard() {
+    let filteredHistory = getFilteredHistory();
 
+    // 💰 total revenue
     let totalRevenue = 0;
+    filteredHistory.forEach(o => {
+        totalRevenue += Number(o.total) || 0;
+    });
+
+    //total orders
+    const totalOrders = filteredHistory.length || 0;
+
     let todayRevenue = 0;
-    let totalOrders = history.length;
 
     const itemCount = {};
 
@@ -617,6 +681,10 @@ function updateDashboard() {
     document.getElementById("totalOrders").textContent = totalOrders;
     document.getElementById("todaySales").textContent = todayRevenue + " SDG";
     document.getElementById("bestSeller").textContent = bestSeller;
+
+    animateValue(document.getElementById("totalRevenue"), 0, totalRevenue || 0);
+    animateValue(document.getElementById("totalOrders"), 0, totalOrders || 0);
+    animateValue(document.getElementById("todaySales"), 0, todayRevenue || 0);
 }
 
 function openDashboard() {
@@ -640,10 +708,36 @@ function closeDashboard() {
 function renderCharts() {
     let cash = 0;
     let digital = 0;
+    let filteredHistory = getFilteredHistory();
 
     if (!Array.isArray(history) || history.length === 0) {
         console.log("No history data");
         return;
+    }
+
+
+    const now = new Date();
+
+    if (currentFilter === "today") {
+        filteredHistory = history.filter(o =>
+            new Date(o.time).toDateString() === now.toDateString()
+        );
+    }
+
+    if (currentFilter === "week") {
+        filteredHistory = history.filter(o => {
+            const d = new Date(o.time);
+            const diff = (now - d) / (1000 * 60 * 60 * 24);
+            return diff <= 7;
+        });
+    }
+
+    if (currentFilter === "month") {
+        filteredHistory = history.filter(o => {
+            const d = new Date(o.time);
+            return d.getMonth() === now.getMonth() &&
+                d.getFullYear() === now.getFullYear();
+        });
     }
 
     const ctx1 = document.getElementById("revenueChart");
@@ -669,7 +763,7 @@ function renderCharts() {
     const dates = {};
     const itemsCount = {};
 
-    history.forEach(order => {
+    filteredHistory.forEach(order => {
 
         if (!order || !order.items) return;
 
@@ -685,8 +779,8 @@ function renderCharts() {
             itemsCount[item.title] += item.count || 0;
         });
 
-        if (order.paymentMethod === "cash") cash++;
-        else if (order.paymentMethod === "digital") digital++;
+        if (order.payment === "cash") cash++;
+        else if (order.payment === "digital") digital++;
     });
 
     const dateLabels = Object.keys(dates);
@@ -758,6 +852,17 @@ function renderCharts() {
                     y: {
                         grid: { color: "rgba(0,0,0,0.05)" }
                     }
+                },
+                animation: {
+                    duration: 1200,
+                    easing: "easeOutQuart"
+                },
+                transitions: {
+                    active: {
+                        animation: {
+                            duration: 300
+                        }
+                    }
                 }
             }
         });
@@ -800,6 +905,17 @@ function renderCharts() {
                         titleColor: "#fff",
                         bodyColor: "#ddd"
                     }
+                },
+                animation: {
+                    duration: 1200,
+                    easing: "easeOutQuart"
+                },
+                transitions: {
+                    active: {
+                        animation: {
+                            duration: 300
+                        }
+                    }
                 }
             }
         });
@@ -819,6 +935,11 @@ function renderCharts() {
                     legend: {
                         position: "bottom"
                     }
+                },
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 1200
                 }
             }
         });
@@ -827,6 +948,96 @@ function renderCharts() {
     } catch (err) {
         console.error("Chart error:", err);
     }
+}
+
+//filter charts
+function getFilteredHistory() {
+
+    const now = new Date();
+
+    if (currentFilter === "today") {
+        return history.filter(o =>
+            new Date(o.time).toDateString() === now.toDateString()
+        );
+    }
+
+    if (currentFilter === "week") {
+        return history.filter(o => {
+            const diff = (now - new Date(o.time)) / (1000 * 60 * 60 * 24);
+            return diff <= 7;
+        });
+    }
+
+    if (currentFilter === "month") {
+        return history.filter(o => {
+            const d = new Date(o.time);
+            return d.getMonth() === now.getMonth() &&
+                d.getFullYear() === now.getFullYear();
+        });
+    }
+
+    return history;
+}
+
+
+function setFilter(filter) {
+    currentFilter = filter;
+    renderCharts();
+}
+
+function setFilter(filter, el) {
+    currentFilter = filter;
+
+    // 🔥 remove active from all
+    document.querySelectorAll(".filter-btn").forEach(btn =>
+        btn.classList.remove("active")
+    );
+
+    // 🔥 set active to clicked
+    el.classList.add("active");
+
+    renderCharts();
+}
+
+// ANIMATE CHART NUMBERS
+function animateValue(el, start, end, duration = 800) {
+
+    let startTime = null;
+
+    function animate(currentTime) {
+        if (!startTime) startTime = currentTime;
+
+        const progress = Math.min((currentTime - startTime) / duration, 1);
+
+        const value = Math.floor(progress * (end - start) + start);
+
+        el.textContent = value;
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        }
+    }
+
+    requestAnimationFrame(animate);
+} function animateValue(el, start, end, duration = 800) {
+
+    let startTime = null;
+
+    function animate(currentTime) {
+        if (!startTime) startTime = currentTime;
+
+        const progress = Math.min((currentTime - startTime) / duration, 1);
+
+        const value = Math.floor(progress * (end - start) + start);
+
+        el.textContent = value;
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        }
+    }
+
+    requestAnimationFrame(animate);
 }
 
 loadHistory();

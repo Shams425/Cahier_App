@@ -70,6 +70,13 @@
             <button class="clXBtn" onclick="closeDashboard()">✖</button>
         </div>
 
+        <div class="filters">
+            <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+            <button class="filter-btn" onclick="setFilter('today', this)">Today</button>
+            <button class="filter-btn" onclick="setFilter('week', this)">Week</button>
+            <button class="filter-btn" onclick="setFilter('month', this)">Month</button>
+        </div>
+
         <div class="dashboard-content">
             <div class="dashboard-cards">
                 <div class="card">
@@ -94,8 +101,8 @@
 
             </div>
 
-            <div class="charts">
 
+            <div class="chartsCanv">
                 <div class="chart-box">
                     <h3>Revenue Overview</h3>
                     <canvas id="revenueChart"></canvas>
@@ -110,8 +117,9 @@
                     <h3>Payment Methods</h3>
                     <canvas id="paymentChart"></canvas>
                 </div>
-
             </div>
+
+
 
         </div>
     </div>
@@ -146,7 +154,7 @@
             <div class="tab-content" id="digitalTab">
                 <p>Total: <span id="payTotal2">0</span> SDG</p>
 
-                <input type="text" id="digitalRef" placeholder="Transaction ID / Phone" />
+                <input type="number" id="transactionInput" placeholder="Enter last 4 digits" maxlength="4" />
             </div>
 
             <!-- ACTIONS -->
