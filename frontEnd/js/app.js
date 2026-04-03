@@ -1,11 +1,46 @@
 // ===== global =====
-let order = [];
+let order = {};
+let heldOrders = [];
 let history = JSON.parse(localStorage.getItem("history")) || [];
 let currentFilter = "all"
 let revenueChart = null;
 let itemsChart = null;
 let paymentChart = null;
-let transactionCounter = 1;
+let activePreviewIndex = null;
+let confirmAction = null;
+let transactionCounter = localStorage.getItem("lastOrderNum") || 0;
+
+function showCustomConfirm(message, action) {
+    const confirmModal = document.getElementById("confirmToast");
+    const messageEl = document.getElementById("confirmMessage");
+
+    messageEl.textContent = message;
+    confirmAction = action; // Save the function we want to run
+
+    confirmModal.classList.remove("hidden");
+    confirmModal.classList.add("visible");
+}
+
+function getNextOrderNumber() {
+    localStorage.setItem("lastOrderNum", 1)
+    transactionCounter++;
+    // Save it immediately so the next tab/session knows where we are
+    localStorage.setItem("lastOrderNum", transactionCounter);
+    return transactionCounter;
+}
+
+// Hook up the buttons in your init code or bottom of app.js
+document.getElementById("confirmYes").onclick = () => {
+    if (confirmAction) confirmAction();
+    closeCustomConfirm();
+};
+
+document.getElementById("confirmNo").onclick = closeCustomConfirm;
+
+function closeCustomConfirm() {
+    document.getElementById("confirmToast").classList.add("hidden");
+    document.getElementById("confirmToast").classList.remove("visible");
+}
 
 
 // Select elements
@@ -36,14 +71,175 @@ function addItem(name, price) {
     }
     renderOrder();
 }
-// ===== Remove all items FUNCTION =====
+
+
+// ===== Remove all items =====
 function clearOrder() {
-    order = [];
+    order = {};
 
     document.querySelector(".order-items").innerHTML = "";
-    document.querySelector(".total span").textContent = "0.00";
+    document.querySelector(".total").textContent = "0.00";
     updatePayButton();
+    updateTotal();
+
 }
+// ===== HOLD ORDER LOGIC=====
+function holdOrder() {
+
+    if (!order || Object.keys(order).length === 0) {
+        showToast("No items to hold");
+        return;
+    }
+
+    if (heldOrders.length >= 5) {
+        showToast("Limit Reached: Max 5 held orders allowed!");
+        return;
+    }
+
+    const holdId = Date.now();
+
+    heldOrders.push({
+        id: holdId,
+        data: JSON.parse(JSON.stringify(order)) // Deep copy to prevent "undefined" errors later
+    });
+
+    renderHeldButtons();
+    renderOrder()
+    clearOrder() // reset UI
+    showToast("Order #" + heldOrders.length + " put on hold");
+}
+
+function renderHeldButtons() {
+    const tray = document.getElementById("heldOrdersTray");
+    if (!tray) return;
+    tray.innerHTML = "";
+
+    heldOrders.forEach((heldObj, index) => {
+        const btn = document.createElement("button");
+        btn.className = "hold-badge animate__animated animate__bounceIn";
+        btn.innerHTML = `Hold ${index + 1}`;
+
+        // Pass the INDEX to the resume function
+        btn.onclick = () => resumeOrder(index);
+        tray.appendChild(btn);
+    });
+}
+
+function resumeOrder(index) {
+    activePreviewIndex = index;
+    const heldItem = heldOrders[index];
+
+    // 1. Safety Check
+    if (!heldItem || !heldItem.data) {
+        showToast("Error: Data corrupted or missing.");
+        return;
+    }
+
+    // 2. Update Header
+    document.getElementById("holdPreviewID").textContent = `Hold #${index + 1}`;
+
+    const list = document.getElementById("holdPreviewList");
+    list.innerHTML = "";
+    let previewTotal = 0;
+    let htmlContent = "";
+
+    // 3. The Loop (Handles the Object structure { "Burger": {price, qty} })
+    const items = heldItem.data;
+    const itemNames = Object.keys(items);
+
+    if (itemNames.length > 0) {
+        itemNames.forEach(name => {
+            const item = items[name];
+            const subtotal = item.price * item.qty;
+            previewTotal += subtotal;
+
+            htmlContent += `
+                <div class="order-item">
+                    <div class="info">
+                        <span class="name">${name}</span>
+                        <span class="qty">x${item.qty}</span>
+                    </div>
+                    <span class="price">${subtotal.toFixed(2)} SDG</span>
+                </div>`;
+        });
+    } else {
+        htmlContent = `<div style="text-align:center; padding:20px; color:#888;">No items in this order</div>`;
+    }
+
+    // 4. Update UI
+    list.innerHTML = htmlContent;
+    document.getElementById("holdPreviewTotal").textContent = previewTotal.toFixed(2);
+
+    // 5. Show Panel
+    document.getElementById("holdPreviewPanel").classList.add("open");
+}
+
+// Discard Held Order
+function cancelHeldOrder() {
+    showCustomConfirm("Discard this held order?", () => {
+        heldOrders.splice(activePreviewIndex, 1);
+        renderHeldButtons();
+        closeHoldPreview();
+        showToast("Held order removed");
+    });
+}
+
+// Pay from Hold (checking if main order is empty)
+function payFromHold() {
+    const heldData = heldOrders[activePreviewIndex].data;
+
+    // If the main POS is NOT empty, we don't just overwrite.
+    // We move the current POS order to HOLD first, then take the new one!
+    if (Object.keys(order).length > 0) {
+        showCustomConfirm("Move current order to Hold and pay this one?", () => {
+            // 1. Put current active order into the hold list
+            heldOrders.push({
+                id: Date.now(),
+                data: JSON.parse(JSON.stringify(order))
+            });
+
+            // 2. Now execute the payment for the one we wanted
+            executePayFromHold(heldData);
+        });
+    } else {
+        // If POS is empty, just proceed normally
+        executePayFromHold(heldData);
+    }
+}
+
+function executePayFromHold(heldData) {
+    // 1. Set the global order to the held data
+    order = JSON.parse(JSON.stringify(heldData));
+
+    // 2. Remove the order we just paid from the held array
+    heldOrders.splice(activePreviewIndex, 1);
+
+    // 3. UI Updates
+    renderHeldButtons(); // Refresh the 1, 2, 3 buttons
+    renderOrder();       // Show the items in the main list
+    updateTotal();       // Update the price
+    closeHoldPreview();  // Slide the panel away
+
+    // 4. Trigger your payment modal
+    openPayModal();
+}
+
+function closeHoldPreview() {
+    document.getElementById("holdPreviewPanel").classList.remove("open");
+}
+
+// ===== CANCEL ORDER  =====
+function cancelOrder() {
+
+    showConfirm("Cancel this order?", () => {
+
+        clearOrder();
+
+        showToast("Order cancelled ❌");
+
+    });
+}
+
 
 // ===== RENDER ORDER LIST =====
 function renderOrder() {
@@ -88,6 +284,41 @@ function changeQty(name, delta) {
         updatePayButton()
     }
     renderOrder();
+}
+// ===== update total =====
+function updateTotal() {
+
+    let total = 0;
+
+    // 🧠 if order is OBJECT (your current structure)
+    for (const name in order) {
+        total += order[name].price * order[name].qty;
+    }
+
+    const totalElement = document.querySelector(".total span");
+
+    if (totalElement) {
+        totalElement.textContent = total.toFixed(2);
+    } else {
+        // If we are in the Hold Panel, we might need to update a different span
+        console.log("Main total display not found, skipping visual update.");
+    }
+
+    currentTotal = total;
+
+    // 💰 update UI
+    document.getElementById("totalPrice").textContent = total + " SDG";
+
+    // 🔘 enable/disable pay button
+    const payBtn = document.getElementById("pay");
+
+    if (total > 0) {
+        payBtn.disabled = false;
+    } else {
+        payBtn.disabled = true;
+    }
+
+    return total
 }
 
 // ===== update pay button =====
@@ -134,10 +365,10 @@ function renderProducts(data) {
             <h3>⭐ Recents :</h3>
             <div class="product-grid">
             ${grouped[category].map(item => `
-            <div class="product"
+            <div class="product" onclick="addItem('${item.name}', ${item.price})"
             data-name="${item.name}"
             data-price="${item.price}">
-            <img src="${item.image}" />
+            <img src="${item.image}" alt="${item.name}" loading="lazy"/>
             <h4>${item.name}</h4>
             <p>${item.price}.00</p>
             </div>
@@ -151,10 +382,10 @@ function renderProducts(data) {
             <h3>${getCategoryTitle(category)}</h3>
             <div class="product-grid">
           ${grouped[category].map(item => `
-            <div class="product"
+            <div class="product" onclick="addItem('${item.name}', ${item.price})"
             data-name="${item.name}"
             data-price="${item.price}">
-            <img src="${item.image}" />
+            <img src="${item.image}" alt="${item.name}" loading="lazy"/>
             <h4>${item.name}</h4>
             <p>${item.price}.00</p>
             </div>
@@ -195,7 +426,7 @@ function attachProductEvents() {
 
 
 // ===== filter product logic ======
-const catButtons = document.querySelectorAll(".cat-btn");
+const catButtons = document.querySelectorAll(".filter-chip");
 const sections = document.querySelectorAll(".category-section");
 const products = document.getElementById("products");
 
@@ -228,7 +459,7 @@ catButtons.forEach(btn => {
 });
 
 function attachCategoryEvents() {
-    const catButtons = document.querySelectorAll(".cat-btn");
+    const catButtons = document.querySelectorAll(".filter-chip");
     const sections = document.querySelectorAll(".category-section");
 
     catButtons.forEach(btn => {
@@ -257,6 +488,40 @@ function attachCategoryEvents() {
     });
 }
 
+function filterMenu() {
+    // 1. Get the search term
+    const searchTerm = document.getElementById("menuSearch").value.toLowerCase();
+
+    // 2. Select all your product divs (using the class from your screenshot)
+    const products = document.querySelectorAll(".product");
+
+    products.forEach(product => {
+        const nameElement = product.querySelector("h4").textContent;
+        console.log(nameElement)
+        if (nameElement) {
+            const itemName = nameElement.toLowerCase();
+
+            // 4. Match and Toggle
+            if (itemName.includes(searchTerm)) {
+                product.style.display = "flex";
+            } else {
+                product.style.display = "none";
+            }
+        }
+    });
+
+    // 5. Bonus: Hide empty category sections
+    // If a whole category (Food, Drinks) has no visible products, hide the header too
+    const categories = document.querySelectorAll(".category-section");
+    categories.forEach(section => {
+        const visibleProducts = section.querySelectorAll(".product[style*='display: flex']");
+        // Also account for products with no style attribute (default visible)
+        const allVisible = Array.from(section.querySelectorAll(".product")).filter(p => p.style.display !== 'none');
+
+        section.style.display = allVisible.length > 0 ? "block" : "none";
+    });
+}
+
 // ===== payment modal ======
 const payBtn = document.getElementById("pay");
 const modal = document.getElementById("paymentModal");
@@ -275,14 +540,15 @@ function getTotal() {
 }
 
 // OPEN MODAL
-payBtn.addEventListener("click", () => {
-    currentTotal = getTotal();
+function openPayModal() {
+    currentTotal = updateTotal();
     payTotal.textContent = currentTotal;
 
     modal.classList.remove("hidden");
     cashInput.value = "";
     changeEl.textContent = "0";
-});
+
+}
 
 // CLOSE MODAL
 document.getElementById("closeModalX").addEventListener("click", () => {
@@ -361,10 +627,12 @@ function confirmOrder() {
     document.querySelector(".modal-overlay").classList.remove("active");
 }
 
-document.getElementById("confirmPay").addEventListener("click", () => {
+function confirmPay() {
+    let changeVal = 0;
 
     if (paymentMethod === "cash") {
         const cash = parseFloat(cashInput.value);
+        changeVal = cash;
 
         if (!cash || cash < currentTotal) {
             showToast("Not enough cash ❌");
@@ -389,7 +657,9 @@ document.getElementById("confirmPay").addEventListener("click", () => {
     setTimeout(() => {
         confirmOrder()
     }, 2000);
-});
+
+    printReceipt(paymentMethod, changeVal);
+};
 
 //toast alert
 function showToast(message, type = "default") {
@@ -1038,6 +1308,51 @@ function animateValue(el, start, end, duration = 800) {
     }
 
     requestAnimationFrame(animate);
+}
+
+// recept logic
+function printReceipt(paymentMethod, change = 0) {
+    const receiptItems = document.getElementById("receipt-items");
+    const orderNumDisplay = document.getElementById("receipt-order-num");
+
+    // NOW this will work perfectly!
+    const orderID = getNextOrderNumber();
+
+    if (orderNumDisplay) {
+        orderNumDisplay.textContent = `#${orderID}`;
+    }
+
+    // 2. Handle Digital Masking
+    let displayMethod = paymentMethod;
+    if (paymentMethod === "Digital") {
+        const input = document.getElementById("transactionInput").value;
+        const lastFour = input.slice(-4) || "0000";
+        displayMethod = `Digital (****${lastFour})`;
+    }
+
+    // 3. Inject Date & Items
+    document.getElementById("receipt-date").textContent = new Date().toLocaleString();
+    receiptItems.innerHTML = "";
+
+    Object.keys(order).forEach(name => {
+        const item = order[name];
+        receiptItems.innerHTML += `
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                <span>${name} x${item.qty}</span>
+                <span>${(item.price * item.qty).toFixed(2)} SDG</span>
+            </div>`;
+    });
+
+    // 4. Totals
+    document.getElementById("receipt-total").textContent = updateTotal().toFixed(2);
+    document.getElementById("receipt-method").textContent = displayMethod;
+    document.getElementById("receipt-change").textContent = parseFloat(change).toFixed(2);
+
+    // 5. Automatic Background Print
+    // We use a small timeout to ensure the DOM is updated before the print dialog grabs the screen
+    setTimeout(() => {
+        window.print();
+    }, 300);
 }
 
 loadHistory();

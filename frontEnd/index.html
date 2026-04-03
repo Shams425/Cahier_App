@@ -18,7 +18,6 @@
         <nav class="nav">
             <button class="nav-btn active">POS | المبيعات</button>
             <button class="nav-btn" onclick="openDashboard()">📊 | Dashboard</button>
-            <button class="nav-btn">Orders | الطلبات</button>
             <button id="HisBtn" class="nav-btn" onclick="toggleHistory()">History | السجل</button>
         </nav>
 
@@ -28,18 +27,25 @@
     </header>
 
     <!-- MAIN -->
-    <main class="container">
-
-        <!-- CATEGORIES -->
-        <aside class="categories">
-            <button class="cat-btn active" data-category="all">POS | المبيعات</button>
-            <button class="cat-btn" data-category="drinks">Drinks | مشروبات</button>
-            <button class="cat-btn" data-category="food">Meals | وجبات</button>
-            <button class="cat-btn" data-category="desserts">Desserts | حلويات</button>
-        </aside>
-
+    <main class="main-container">
         <!-- PRODUCTS -->
-        <section class="products" id="products"></section>
+        <section class="product-section">
+            <div class="menu-controls">
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i> <input type="text" id="menuSearch"
+                        placeholder="Search menu... (e.g. Pizza)" onkeyup="filterMenu()">
+                </div>
+                <div class="category-filters">
+                    <button class="filter-chip active" data-category="all">All</button>
+                    <button class="filter-chip" data-category="food">Food</button>
+                    <button class="filter-chip" data-category="drinks">Drinks</button>
+                    <button class="filter-chip" data-category="desserts">Desserts</button>
+                </div>
+            </div>
+            <div class="scrollable-products">
+                <div class="products" id="products"></div>
+            </div>
+        </section>
 
         <!-- ORDER -->
         <aside class="order">
@@ -49,18 +55,44 @@
 
             </ul>
 
-            <div class="total">
+            <div id="totalPrice" class="total">
                 Total: <span>00.00</span>
             </div>
 
+            <div id="heldOrdersTray" class="held-orders-container"></div>
+
             <div class="orderAction">
-                <button class="btn pay" id="pay" disabled>دفع</button>
-                <button class="btn hold" id="hold">تعليق</button>
-                <button class="btn cancel" id="cancel">إلغاء</button>
+                <button class="btn pay" id="pay" onclick="openPayModal()" disabled>دفع</button>
+                <button class="btn hold" id="hold" onclick="holdOrder()">تعليق</button>
+                <button class="btn cancel" id="cancel" onclick="cancelOrder()">إلغاء</button>
             </div>
         </aside>
-
     </main>
+
+    <!-- hold order panel -->
+    <div id="holdPreviewPanel">
+        <div class="hold-preview-content">
+            <div class="hold-preview-header">
+                <h3 id="holdPreviewID">Hold #1</h3>
+                <button class="close-preview" onclick="closeHoldPreview()">✖</button>
+            </div>
+
+            <div id="holdPreviewList">
+            </div>
+
+            <div class="hold-preview-footer">
+                <div class="hold-total-row">
+                    <span>Total</span>
+                    <span><span id="holdPreviewTotal">0</span> SDG</span>
+                </div>
+                <div class="hold-preview-actions">
+                    <button onclick="payFromHold()" class="pay-btn">Confirm Pay</button>
+                    <button onclick="cancelHeldOrder()" class="cancel-btn">Discard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- dashboard -->
     <div id="dashboardPanel" class="side-panel">
@@ -159,7 +191,7 @@
 
             <!-- ACTIONS -->
             <div class="modal-buttons">
-                <button id="confirmPay" class="confirm">Confirm</button>
+                <button id="confirmPay" onclick="confirmPay()" class="confirm">Confirm</button>
                 <button id="closePay" class="cancel">Cancel</button>
             </div>
 
@@ -186,6 +218,30 @@
         <div class="confirm-actions">
             <button id="confirmYes">Yes</button>
             <button id="confirmNo">Cancel</button>
+        </div>
+    </div>
+
+    <!-- receipt -->
+    <div id="receipt-print-area" class="print-only">
+        <div class="receipt-header" style="text-align:center;">
+            <h2 style="margin:0;">RESTAURANT NAME</h2>
+            <h3 id="receipt-order-num" style="margin:5px 0;">#0000</h3>
+            <p id="receipt-date" style="font-size:0.8rem;"></p>
+            <hr style="border:1px dashed #000;">
+        </div>
+
+        <div id="receipt-items"></div>
+
+        <hr style="border:1px dashed #000;">
+
+        <div class="receipt-footer">
+            <p style="display:flex; justify-content:space-between;">
+                <strong>TOTAL:</strong>
+                <strong><span id="receipt-total">0</span> SDG</strong>
+            </p>
+            <p>Method: <span id="receipt-method"></span></p>
+            <p>Change: <span id="receipt-change">0</span> SDG</p>
+            <p style="text-align:center; margin-top:15px;">--- THANK YOU ---</p>
         </div>
     </div>
 
