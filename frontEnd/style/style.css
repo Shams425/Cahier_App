@@ -342,7 +342,7 @@ button[onclick="cancelOrder()"] {
 
 
 .product {
-    min-width: 120px;
+    width: 130px;
     /* ⭐ important for horizontal row */
     background: #fff;
     border-radius: 12px;
@@ -1010,6 +1010,50 @@ button.unRotate {
     margin-bottom: 15px;
 }
 
+.dashboard-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 15px 25px;
+    background: #fff;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.filter-group {
+    display: flex;
+    gap: 10px;
+}
+
+/* Make the Print Button Pop */
+.btn-print {
+    background-color: #ff8c00;
+    /* Your brand orange */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-print:hover {
+    background-color: #e67e00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 140, 0, 0.3);
+}
+
+#printable-report,
+.receipt-print-area {
+    display: none;
+}
+
 .card {
     background: #fff;
     padding: 12px;
@@ -1040,8 +1084,6 @@ button.unRotate {
     z-index: 1000;
     overflow: auto;
     scroll-behavior: smooth;
-
-
     pointer-events: none;
 }
 
@@ -1148,11 +1190,8 @@ body.dashboard-open::before {
 
 .filters {
     display: flex;
-    justify-content: center;
     flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 20px;
-    padding: 20px;
     backdrop-filter: blur(10px);
 }
 
@@ -1199,6 +1238,19 @@ body.dashboard-open::before {
         visibility: hidden;
     }
 
+    .active-print,
+    .active-print * {
+        visibility: visible !important;
+        display: block !important;
+    }
+
+    .active-print {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+
     /* Show ONLY the receipt */
     #receipt-print-area,
     #receipt-print-area * {
@@ -1213,5 +1265,71 @@ body.dashboard-open::before {
         width: 100%;
         font-family: 'Courier New', Courier, monospace;
         /* Classic receipt font */
+    }
+}
+
+/* report */
+/* Hide from UI */
+#printable-report {
+    display: none;
+}
+
+/* 2. When we are in 'report-mode', hide EVERYTHING except the report */
+body.report-mode * {
+    visibility: hidden;
+}
+
+body.report-mode #printable-report,
+body.report-mode #printable-report * {
+    visibility: visible !important;
+    display: block !important;
+}
+
+@media print {
+
+    /* Hide everything else on the screen */
+    body * {
+        visibility: hidden;
+    }
+
+    /* Only show the report */
+    #printable-report,
+    #printable-report * {
+        visibility: visible;
+        color: black !important;
+    }
+
+    body.report-mode #printable-report {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: white;
+    }
+
+    /* Ensure the OLD receipt is forced to stay hidden during report mode */
+    body.report-mode .receipt-print-area,
+    body.report-mode #receipt {
+        display: none !important;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    .report-table th,
+    .report-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    .report-header {
+        text-align: center;
+        border-bottom: 2px solid #000;
     }
 }

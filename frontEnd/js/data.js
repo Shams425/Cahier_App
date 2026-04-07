@@ -1,16 +1,16 @@
-const productsData = [
+export const productsData = [
     // ⭐ TOP ITEMS
     {
         name: "Burger",
         price: 25,
         category: "top",
-        image: "https://via.placeholder.com/120"
+        image: "/frontEnd/img/burger.webp"
     },
     {
         name: "Cola",
         price: 10,
         category: "top",
-        image: "https://via.placeholder.com/120"
+        image: "/frontEnd/img/cola.webp"
     },
 
     // 🍔 FOOD
@@ -18,13 +18,15 @@ const productsData = [
         name: "Pizza",
         price: 30,
         category: "food",
-        image: "https://via.placeholder.com/120"
+        image: "/frontEnd/img/pizza.webp"
+
     },
     {
         name: "Shawarma",
         price: 20,
         category: "food",
-        image: "https://via.placeholder.com/120"
+        image: "/frontEnd/img/shawarmow.webp"
+
     },
 
     // 🥤 DRINKS
@@ -32,13 +34,15 @@ const productsData = [
         name: "Pepsi",
         price: 10,
         category: "drinks",
-        image: "https://via.placeholder.com/120"
+        image: "/frontEnd/img/cola.webp"
+
     },
     {
         name: "Orange Juice",
         price: 12,
         category: "drinks",
-        image: "https://via.placeholder.com/120"
+        image: "/frontEnd/img/orange_juice.webp"
+
     },
 
     // 🍰 DESSERTS
@@ -46,6 +50,7 @@ const productsData = [
         name: "Cake",
         price: 15,
         category: "desserts",
-        image: "https://via.placeholder.com/120"
+        image: "/frontEnd/img/cake.webp"
+
     }
 ];

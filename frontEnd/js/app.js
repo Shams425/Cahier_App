@@ -56,7 +56,6 @@ productCards.forEach(card => {
 
         addItem(name, price);
     });
-    updatePayButton()
 });
 
 // ===== ADD ITEM FUNCTION =====
@@ -69,6 +68,7 @@ function addItem(name, price) {
             qty: 1
         };
     }
+    updatePayButton()
     renderOrder();
 }
 
@@ -365,7 +365,7 @@ function renderProducts(data) {
             <h3>⭐ Recents :</h3>
             <div class="product-grid">
             ${grouped[category].map(item => `
-            <div class="product" onclick="addItem('${item.name}', ${item.price})"
+            <div class="product"
             data-name="${item.name}"
             data-price="${item.price}">
             <img src="${item.image}" alt="${item.name}" loading="lazy"/>
@@ -382,7 +382,7 @@ function renderProducts(data) {
             <h3>${getCategoryTitle(category)}</h3>
             <div class="product-grid">
           ${grouped[category].map(item => `
-            <div class="product" onclick="addItem('${item.name}', ${item.price})"
+            <div class="product"
             data-name="${item.name}"
             data-price="${item.price}">
             <img src="${item.image}" alt="${item.name}" loading="lazy"/>
@@ -753,6 +753,7 @@ function saveToHistory() {
         total: currentTotal,
         payment: paymentMethod,
         time: new Date().toLocaleString(),
+        date: new Date().toISOString(),
         transactionId: paymentMethod === "digital"
             ? String(transactionInput.value).padStart(4, "*")
             : null
@@ -760,6 +761,7 @@ function saveToHistory() {
 
     history.push(newOrder);
     localStorage.setItem("posHistory", JSON.stringify(history));
+    if (typeof renderHistory === "function") renderHistory(); //refresh the UI
 }
 
 function loadHistory() {
@@ -1160,7 +1162,8 @@ function renderCharts() {
                 cutout: "65%", // 🔥 donut style
                 animation: {
                     animateRotate: true,
-                    duration: 1000
+                    animateScale: true,
+                    duration: 1200
                 },
                 plugins: {
                     legend: {
@@ -1183,6 +1186,8 @@ function renderCharts() {
                 transitions: {
                     active: {
                         animation: {
+                            animateRotate: true,
+                            animateScale: true,
                             duration: 300
                         }
                     }
@@ -1270,7 +1275,7 @@ function setFilter(filter, el) {
 }
 
 // ANIMATE CHART NUMBERS
-function animateValue(el, start, end, duration = 800) {
+function animateValue(el, start, end, duration = 1000) {
 
     let startTime = null;
 
@@ -1353,6 +1358,126 @@ function printReceipt(paymentMethod, change = 0) {
     setTimeout(() => {
         window.print();
     }, 300);
+}
+
+// report logic
+function printFilteredReport() {
+    const reportElem = document.getElementById("printable-report");
+    const receiptElem = document.querySelector(".receipt-print-area");
+
+    // 1. Identify which filter is active
+    // Assuming your buttons have a class like 'active'
+    const activeFilter = document.querySelector(".filter-btn.active")?.textContent || "Today";
+
+    // 2. Filter your historyData based on that period
+    const dataToPrint = getFilteredData(activeFilter); // Your existing filtering logic
+
+    console.log("Printing items count:", dataToPrint.length);
+
+    fillReportTable(dataToPrint, activeFilter);
+
+    document.body.classList.add("report-mode");
+
+    // 3. Update the Report UI
+    document.getElementById("report-period").textContent = `Period: ${activeFilter}`;
+    document.getElementById("report-date").textContent = `Generated on: ${new Date().toLocaleString()}`;
+
+    let totalSales = 0;
+    let cash = 0;
+    let digital = 0;
+    let itemMap = {};
+
+    dataToPrint.forEach(order => {
+        totalSales += order.total;
+        if (order.method === "Cash") cash += order.total;
+        else digital += order.total;
+
+        Object.entries(order.items).forEach(([name, details]) => {
+            if (!itemMap[name]) itemMap[name] = { qty: 0, sum: 0 };
+            itemMap[name].qty += details.qty;
+            itemMap[name].sum += (details.qty * details.price);
+        });
+    });
+
+    // 4. Inject into the printable table
+    const tableBody = document.querySelector("#rep-items-table tbody");
+    tableBody.innerHTML = Object.entries(itemMap).map(([name, data]) => `
+        <tr>
+            <td>${name}</td>
+            <td>${data.qty}</td>
+            <td>${data.sum.toFixed(2)}</td>
+        </tr>
+    `).join("");
+
+    document.getElementById("rep-total").textContent = totalSales.toFixed(2) + " SDG";
+    document.getElementById("rep-cash").textContent = cash.toFixed(2);
+    document.getElementById("rep-digital").textContent = digital.toFixed(2);
+
+    if (receiptElem) receiptElem.classList.remove("active-print");
+    reportElem.classList.add("active-print");
+
+    // 5. Trigger Print
+    setTimeout(() => {
+        window.print();
+        document.body.classList.remove("report-mode");
+    }, 300);
+}
+
+function getFilteredData(period) {
+    const now = new Date();
+    period = period.toLowerCase();
+
+    return history.filter(order => {
+        // This looks for the new 'date' property we just added above
+        const orderDate = new Date(order.date);
+
+        if (isNaN(orderDate)) return false;
+
+        if (period.includes('today')) {
+            return orderDate.toDateString() === now.toDateString();
+        }
+        if (period.includes('week')) {
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(now.getDate() - 7);
+            return orderDate >= oneWeekAgo;
+        }
+        if (period.includes('month')) {
+            return orderDate.getMonth() === now.getMonth() &&
+                orderDate.getFullYear() === now.getFullYear();
+        }
+        return true; // "All"
+    });
+}
+
+function fillReportTable(data, period) {
+    const tableBody = document.querySelector("#rep-items-table tbody");
+    if (!tableBody) return;
+
+    let totalSales = 0;
+    let itemMap = {};
+
+    data.forEach(order => {
+        totalSales += parseFloat(order.total) || 0;
+        order.items.forEach(item => {
+            const name = item.title;
+            if (!itemMap[name]) itemMap[name] = { qty: 0, sum: 0 };
+            itemMap[name].qty += item.count;
+            itemMap[name].sum += (item.count * item.price);
+        });
+    });
+
+    // Create the rows
+    tableBody.innerHTML = Object.entries(itemMap).map(([name, stats]) => `
+        <tr>
+            <td style="text-align: left;">${name}</td>
+            <td style="text-align: center;">${stats.qty}</td>
+            <td style="text-align: right;">${stats.sum.toFixed(2)} SDG</td>
+        </tr>
+    `).join("");
+
+    // Update the Summary labels
+    document.getElementById("rep-total").innerText = totalSales.toFixed(2) + " SDG";
+    document.getElementById("report-period").innerText = "Period: " + period;
 }
 
 loadHistory();

@@ -33,7 +33,7 @@
             <div class="menu-controls">
                 <div class="search-wrapper">
                     <i class="fas fa-search"></i> <input type="text" id="menuSearch"
-                        placeholder="Search menu... (e.g. Pizza)" onkeyup="filterMenu()">
+                        placeholder="Search menu... (e.g. Pizza)">
                 </div>
                 <div class="category-filters">
                     <button class="filter-chip active" data-category="all">All</button>
@@ -63,8 +63,8 @@
 
             <div class="orderAction">
                 <button class="btn pay" id="pay" onclick="openPayModal()" disabled>دفع</button>
-                <button class="btn hold" id="hold" onclick="holdOrder()">تعليق</button>
-                <button class="btn cancel" id="cancel" onclick="cancelOrder()">إلغاء</button>
+                <button class="btn hold" id="hold">تعليق</button>
+                <button class="btn cancel" id="cancel">إلغاء</button>
             </div>
         </aside>
     </main>
@@ -74,7 +74,7 @@
         <div class="hold-preview-content">
             <div class="hold-preview-header">
                 <h3 id="holdPreviewID">Hold #1</h3>
-                <button class="close-preview" onclick="closeHoldPreview()">✖</button>
+                <button id="closeHoldPreview" class="close-preview">✖</button>
             </div>
 
             <div id="holdPreviewList">
@@ -86,8 +86,8 @@
                     <span><span id="holdPreviewTotal">0</span> SDG</span>
                 </div>
                 <div class="hold-preview-actions">
-                    <button onclick="payFromHold()" class="pay-btn">Confirm Pay</button>
-                    <button onclick="cancelHeldOrder()" class="cancel-btn">Discard</button>
+                    <button id="payFromHold" class="pay-btn">Confirm Pay</button>
+                    <button id="cancelHeldOrder" class="cancel-btn">Discard</button>
                 </div>
             </div>
         </div>
@@ -102,11 +102,19 @@
             <button class="clXBtn" onclick="closeDashboard()">✖</button>
         </div>
 
-        <div class="filters">
-            <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
-            <button class="filter-btn" onclick="setFilter('today', this)">Today</button>
-            <button class="filter-btn" onclick="setFilter('week', this)">Week</button>
-            <button class="filter-btn" onclick="setFilter('month', this)">Month</button>
+        <div class="dashboard-controls">
+            <div class="filters">
+                <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+                <button class="filter-btn" onclick="setFilter('today', this)">Today</button>
+                <button class="filter-btn" onclick="setFilter('week', this)">Week</button>
+                <button class="filter-btn" onclick="setFilter('month', this)">Month</button>
+            </div>
+
+            <div class="action-group">
+                <button class="btn-print" onclick="printFilteredReport()">
+                    <i class="fas fa-print"></i> Print Report | طباعة التقرير
+                </button>
+            </div>
         </div>
 
         <div class="dashboard-content">
@@ -155,6 +163,46 @@
 
         </div>
     </div>
+
+    <!-- dashboard-modal -->
+    <!-- <div id="dashboardModal" class="modal-overlay hidden">
+        <div class="modal-content shift-summary-card animate__animated animate__fadeInDown">
+            <div class="modal-header">
+                <h3>Shift Summary | ملخص الوردية</h3>
+                <button class="close-btn" onclick="closeDashboard()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="summary-grid">
+                    <div class="summary-box">
+                        <p>Total Sales</p>
+                        <h2 id="sum-total">0.00</h2>
+                    </div>
+                    <div class="summary-box">
+                        <p>Orders Count</p>
+                        <h2 id="sum-count">0</h2>
+                    </div>
+                    <div class="summary-box cash">
+                        <p>Cash Collected</p>
+                        <h2 id="sum-cash">0.00</h2>
+                    </div>
+                    <div class="summary-box digital">
+                        <p>Digital Payments</p>
+                        <h2 id="sum-digital">0.00</h2>
+                    </div>
+                </div>
+
+                <div class="top-items-section">
+                    <h4>Top Selling Items</h4>
+                    <ul id="top-items-list">
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="window.print()">Print Report</button>
+                <button class="btn-danger" onclick="endShift()">End Shift & Clear</button>
+            </div>
+        </div>
+    </div> -->
 
 
     <!-- paymentModal -->
@@ -245,9 +293,66 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.js"></script>
-    <script src="js/data.js"></script>
-    <script src="js/app.js"></script>
+    <!-- report -->
+    <div id="printable-report" class="print-only">
+        <div class="report-header">
+            <h1>Shift Sales Report | تقرير المبيعات</h1>
+            <p id="report-period">Period: Today</p>
+            <p id="report-date">Generated on: --/--/----</p>
+        </div>
+
+        <div class="report-stats-grid">
+            <div class="stat-item">
+                <span>Total Revenue:</span>
+                <strong id="rep-total">0.00 SDG</strong>
+            </div>
+            <div class="stat-item">
+                <span>Orders Processed:</span>
+                <strong id="rep-count">0</strong>
+            </div>
+        </div>
+
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Payment Method</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Cash</td>
+                    <td id="rep-cash">0.00</td>
+                </tr>
+                <tr>
+                    <td>Digital</td>
+                    <td id="rep-digital">0.00</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Item Breakdown</h3>
+        <table class="report-table" id="rep-items-table">
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Qty Sold</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+        <div class="report-footer">
+            <p>Authorized Signature: __________________</p>
+        </div>
+    </div>
+
+    <script src="js/chart.umd.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <!-- <script src="js/data.js"></script> -->
+    <!-- <script src="js/app.js"></script> -->
 </body>
 
 </html>
